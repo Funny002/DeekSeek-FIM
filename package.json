@@ -1,0 +1,247 @@
+{
+  "name": "deepseek-fim",
+  "displayName": "DeepSeek FIM",
+  "description": "DeepSeek / OpenAI-compatible FIM inline completion for VS Code.",
+  "version": "0.2.3",
+  "publisher": "local",
+  "license": "MIT",
+  "packageManager": "pnpm@10.34.9",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Machine Learning",
+    "Other"
+  ],
+  "keywords": [
+    "fim",
+    "inline completion",
+    "deepseek",
+    "codellm",
+    "autocomplete"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "deepseekFim",
+          "title": "FIM 补全",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "deepseekFim": [
+        {
+          "type": "webview",
+          "id": "deepseekFim.settings",
+          "name": "模型与设置"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "deepseek-fim.openSettings",
+        "title": "打开设置面板",
+        "category": "DeepSeek FIM"
+      },
+      {
+        "command": "deepseek-fim.triggerCompletion",
+        "title": "手动触发行内补全",
+        "category": "DeepSeek FIM"
+      },
+      {
+        "command": "deepseek-fim.toggle",
+        "title": "切换行内补全开关",
+        "category": "DeepSeek FIM"
+      },
+      {
+        "command": "deepseek-fim.setApiKey",
+        "title": "设置当前模型的 API 密钥",
+        "category": "DeepSeek FIM"
+      },
+      {
+        "command": "deepseek-fim.queryBalance",
+        "title": "查询 DeepSeek 账户余额",
+        "category": "DeepSeek FIM"
+      },
+      {
+        "command": "deepseek-fim.showStats",
+        "title": "显示使用统计",
+        "category": "DeepSeek FIM"
+      },
+      {
+        "command": "deepseek-fim.showDiagnostics",
+        "title": "显示诊断报告",
+        "category": "DeepSeek FIM"
+      },
+      {
+        "command": "deepseek-fim.resetStats",
+        "title": "重置使用统计",
+        "category": "DeepSeek FIM"
+      },
+      {
+        "command": "deepseek-fim.clearCache",
+        "title": "清除补全缓存",
+        "category": "DeepSeek FIM"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "deepseek-fim.triggerCompletion",
+          "when": "editorTextFocus",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "DeepSeek FIM",
+      "properties": {
+        "deepseek-fim.enabled": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window",
+          "description": "启用行内补全。"
+        },
+        "deepseek-fim.autoTrigger": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window",
+          "description": "输入时自动请求补全；关闭后仍可手动触发。"
+        },
+        "deepseek-fim.multiLine": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window",
+          "description": "允许返回多行补全。"
+        },
+        "deepseek-fim.debounceMs": {
+          "type": "number",
+          "default": 180,
+          "minimum": 0,
+          "maximum": 2000,
+          "scope": "window",
+          "description": "输入停止后等待多久再自动请求（毫秒）。"
+        },
+        "deepseek-fim.maxTokens": {
+          "type": "number",
+          "default": 128,
+          "minimum": 1,
+          "maximum": 4096,
+          "scope": "window",
+          "description": "单次补全的最大输出 Token 数（DeepSeek FIM 上限 4096）。"
+        },
+        "deepseek-fim.contextLines": {
+          "type": "number",
+          "default": 30,
+          "minimum": 0,
+          "maximum": 200,
+          "scope": "window",
+          "description": "光标前后附带的上下文行数。"
+        },
+        "deepseek-fim.maxPrefixChars": {
+          "type": "number",
+          "default": 3000,
+          "minimum": 200,
+          "maximum": 20000,
+          "scope": "window",
+          "description": "发送给模型的前缀字符上限。"
+        },
+        "deepseek-fim.maxSuffixChars": {
+          "type": "number",
+          "default": 1500,
+          "minimum": 0,
+          "maximum": 20000,
+          "scope": "window",
+          "description": "发送给模型的后缀字符上限。"
+        },
+        "deepseek-fim.temperature": {
+          "type": "number",
+          "default": 0.2,
+          "minimum": 0,
+          "maximum": 2,
+          "scope": "window",
+          "description": "生成随机性。数值越低越稳定，越高越发散。"
+        },
+        "deepseek-fim.topP": {
+          "type": "number",
+          "default": 1,
+          "minimum": 0.001,
+          "maximum": 1,
+          "scope": "window",
+          "description": "核采样阈值，取值 (0, 1]。官方建议不要同时大幅修改 temperature 和 topP。"
+        },
+        "deepseek-fim.stopSequences": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "scope": "window",
+          "description": "停止词，最多 16 个。面板中每行一个，支持 \\n、\\r、\\t 转义。"
+        },
+        "deepseek-fim.retryCount": {
+          "type": "number",
+          "default": 1,
+          "minimum": 0,
+          "maximum": 2,
+          "scope": "window",
+          "description": "可重试错误（429、5xx、超时、网络错误）的最大重试次数。"
+        },
+        "deepseek-fim.retryDelayMs": {
+          "type": "number",
+          "default": 300,
+          "minimum": 0,
+          "maximum": 2000,
+          "scope": "window",
+          "description": "首次重试前的等待时间，后续重试按次数递增。"
+        },
+        "deepseek-fim.requestTimeoutMs": {
+          "type": "number",
+          "default": 12000,
+          "minimum": 1000,
+          "maximum": 60000,
+          "scope": "window",
+          "description": "单次补全请求的超时时间（毫秒）。"
+        },
+        "deepseek-fim.languages": {
+          "type": "string",
+          "default": "",
+          "scope": "window",
+          "description": "仅在这些语言中启用，逗号分隔（如 typescript,python）。留空表示所有语言。"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "node esbuild.mjs && tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json",
+    "watch": "node esbuild.mjs --watch",
+    "preview": "node scripts/preview.mjs",
+    "test": "tsx --test test/*.test.ts",
+    "test:integration": "pnpm run compile && node scripts/build-tests.mjs && node test/integration/run.mjs",
+    "package": "vsce package --no-dependencies --allow-missing-repository --no-rewrite-relative-links",
+    "vscode:prepublish": "pnpm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/vscode": "1.90.0",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^4.1.0",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "@vscode/vsce-sign"
+    ]
+  }
+}

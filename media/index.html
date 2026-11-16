@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src {{cspSource}}; img-src {{cspSource}} data:; font-src {{cspSource}}; script-src 'nonce-{{nonce}}';"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="{{styleUri}}" />
+    <title>FIM 设置</title>
+  </head>
+  <body>
+    <div class="app">
+      <header class="hero">
+        <div class="brand">
+          <div class="logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M4 7.5 8.5 12 4 16.5M11 17h8"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="m17.2 3.2.7 1.9 1.9.7-1.9.7-.7 1.9-.7-1.9-1.9-.7 1.9-.7.7-1.9Z"
+                fill="currentColor"
+              />
+            </svg>
+          </div>
+          <div class="brand-text">
+            <h1>FIM 补全</h1>
+            <p>模型驱动的行内代码补全</p>
+          </div>
+        </div>
+        <label class="switch" title="启用或暂停行内补全">
+          <input id="enabledToggle" type="checkbox" aria-label="启用行内补全" />
+          <span class="switch-track"><span class="switch-thumb"></span></span>
+        </label>
+      </header>
+
+      <div id="statusLine" class="status-line" data-tone="idle">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span id="statusText">正在加载…</span>
+      </div>
+
+      <main class="content">
+        <section class="panel collapsible" aria-labelledby="modelsHeading">
+          <div class="section-header">
+            <button
+              class="section-toggle"
+              type="button"
+              data-panel="models"
+              aria-expanded="true"
+              aria-controls="modelsBody"
+            >
+              <span class="chevron" aria-hidden="true"></span>
+              <span class="section-heading">
+                <span
+                  id="modelsHeading"
+                  class="section-title"
+                  role="heading"
+                  aria-level="2"
+                  >模型</span
+                >
+                <span class="section-sub"
+                  >预设开箱即用，也可以接入任意 FIM 接口</span
+                >
+              </span>
+            </button>
+            <span id="modelCount" class="count">0</span>
+          </div>
+
+          <div id="modelsBody" class="section-body">
+            <div id="balanceBox" class="balance-box hidden" aria-live="polite">
+              <div class="balance-head">
+                <span class="balance-label">DeepSeek 账户余额</span>
+                <button id="refreshBalanceBtn" class="link-btn" type="button">
+                  刷新
+                </button>
+              </div>
+              <div id="balanceMain" class="balance-main">—</div>
+              <div id="balanceMeta" class="balance-meta"></div>
+            </div>
+
+          <div id="modelList" class="model-list"></div>
+          <div id="emptyModels" class="empty hidden">
+            <p>还没有模型。</p>
+            <p class="muted">从下方添加一个预设，或创建自定义模型。</p>
+          </div>
+
+          <div class="preset-row">
+            <select id="presetSelect" class="select" aria-label="模型预设"></select>
+            <button id="addPresetBtn" class="btn secondary" type="button">
+              添加
+            </button>
+          </div>
+
+          <form id="modelForm" class="model-form" autocomplete="off">
+            <div class="form-heading">
+              <span id="editorTitle">模型设置</span>
+              <span id="activeBadge" class="badge hidden">当前模型</span>
+            </div>
+
+            <label class="field">
+              <span class="field-label">显示名称</span>
+              <input
+                id="fieldName"
+                type="text"
+                maxlength="80"
+                placeholder="例如 DeepSeek FIM"
+                spellcheck="false"
+                autocomplete="off"
+              />
+            </label>
+
+            <div class="field-row">
+              <label class="field">
+                <span class="field-label">模型 ID</span>
+                <span class="identifier-row">
+                  <input
+                    id="fieldModel"
+                    type="text"
+                    maxlength="200"
+                    placeholder="deepseek-flash"
+                    spellcheck="false"
+                    autocomplete="off"
+                    aria-label="模型 ID"
+                    list="modelOptions"
+                  />
+                  <datalist id="modelOptions"></datalist>
+                  <button
+                    id="fetchModelsBtn"
+                    class="mini-btn"
+                    type="button"
+                    aria-label="获取模型列表"
+                    title="从 /models 获取可用模型"
+                  >
+                    获取
+                  </button>
+                </span>
+              </label>
+              <label class="field">
+                <span class="field-label">接口协议</span>
+                <select id="fieldProtocol">
+                  <option value="deepseek">DeepSeek FIM</option>
+                  <option value="openai">OpenAI 兼容 FIM</option>
+                  <option value="chat">Chat 兼容（实验性）</option>
+                </select>
+              </label>
+            </div>
+            <p class="hint" id="modelCatalogHint">
+              可从服务端 <code>/models</code> 获取可用模型，并选择模型 ID。
+            </p>
+
+            <label class="field">
+              <span class="field-label">API 地址</span>
+              <input
+                id="fieldUrl"
+                type="url"
+                placeholder="https://api.deepseek.com/beta/completions"
+                spellcheck="false"
+                autocomplete="off"
+              />
+            </label>
+            <p class="hint">
+              支持根地址或完整的 <code>/completions</code> 地址，插件会自动补齐路径；Chat 兼容模式会自动使用
+              <code>/chat/completions</code>。
+            </p>
+
+            <label class="field">
+              <span class="field-label">API 密钥</span>
+              <span class="secret-row">
+                <input
+                  id="fieldKey"
+                  type="password"
+                  placeholder="sk-..."
+                  spellcheck="false"
+                  autocomplete="new-password"
+                />
+                <button id="toggleKey" class="mini-btn" type="button">
+                  显示
+                </button>
+              </span>
+            </label>
+            <div class="key-state">
+              <span id="keyHint" class="hint inline">尚未保存密钥。</span>
+              <label class="check compact">
+                <input id="clearKey" type="checkbox" />
+                <span>清除已保存密钥</span>
+              </label>
+            </div>
+            <p class="hint">
+              密钥保存在 VS Code SecretStorage 中，不会写进 settings.json。
+            </p>
+
+            <div class="actions">
+              <button id="saveModelBtn" class="btn primary" type="submit">
+                保存模型
+              </button>
+              <button id="testBtn" class="btn secondary" type="button">
+                测试连接
+              </button>
+            </div>
+
+            <div class="sub-actions">
+              <button id="setActiveBtn" class="link-btn" type="button">
+                设为当前模型
+              </button>
+              <button id="deleteBtn" class="link-btn danger" type="button">
+                删除模型
+              </button>
+            </div>
+
+            <div id="testOutput" class="output hidden" aria-live="polite"></div>
+          </form>
+          </div>
+        </section>
+
+        <section class="panel collapsible" aria-labelledby="settingsHeading">
+          <div class="section-header">
+            <button
+              class="section-toggle"
+              type="button"
+              data-panel="settings"
+              aria-expanded="true"
+              aria-controls="settingsBody"
+            >
+              <span class="chevron" aria-hidden="true"></span>
+              <span class="section-heading">
+                <span
+                  id="settingsHeading"
+                  class="section-title"
+                  role="heading"
+                  aria-level="2"
+                  >FIM 配置</span
+                >
+                <span class="section-sub"
+                  >上下文、触发策略与生成参数</span
+                >
+              </span>
+            </button>
+            <button id="resetSettingsBtn" class="link-btn" type="button">
+              恢复默认
+            </button>
+          </div>
+
+          <div id="settingsBody" class="section-body">
+            <div class="settings-group">
+              <div class="group-title">生成参数</div>
+              <div class="settings-grid">
+                <label class="field">
+                  <span class="field-label">最大输出 Token</span>
+                  <input id="setMaxTokens" type="number" min="1" max="4096" step="1" />
+                </label>
+                <label class="field">
+                  <span class="field-label">随机性</span>
+                  <input
+                    id="setTemperature"
+                    type="number"
+                    min="0"
+                    max="2"
+                    step="0.05"
+                    title="数值越低越稳定，越高越发散"
+                  />
+                </label>
+                <label class="field">
+                  <span class="field-label">核采样阈值</span>
+                  <input
+                    id="setTopP"
+                    type="number"
+                    min="0.001"
+                    max="1"
+                    step="any"
+                    title="Top P：仅保留累计概率达到该阈值的候选"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div class="settings-group">
+              <div class="group-title">上下文</div>
+              <div class="settings-grid">
+                <label class="field">
+                  <span class="field-label">上下文行数</span>
+                  <input id="setContextLines" type="number" min="0" max="200" step="1" />
+                </label>
+                <label class="field">
+                  <span class="field-label">前缀字符上限</span>
+                  <input
+                    id="setMaxPrefixChars"
+                    type="number"
+                    min="200"
+                    max="20000"
+                    step="100"
+                  />
+                </label>
+                <label class="field">
+                  <span class="field-label">后缀字符上限</span>
+                  <input
+                    id="setMaxSuffixChars"
+                    type="number"
+                    min="0"
+                    max="20000"
+                    step="100"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div class="settings-group">
+              <div class="group-title">请求</div>
+              <div class="settings-grid">
+                <label class="field">
+                  <span class="field-label">触发延迟（毫秒）</span>
+                  <input id="setDebounceMs" type="number" min="0" max="2000" step="10" />
+                </label>
+                <label class="field">
+                  <span class="field-label">请求超时（毫秒）</span>
+                  <input
+                    id="setTimeoutMs"
+                    type="number"
+                    min="1000"
+                    max="60000"
+                    step="500"
+                  />
+                </label>
+                <label class="field">
+                  <span class="field-label">失败重试次数</span>
+                  <input id="setRetryCount" type="number" min="0" max="2" step="1" />
+                </label>
+                <label class="field">
+                  <span class="field-label">重试间隔（毫秒）</span>
+                  <input
+                    id="setRetryDelayMs"
+                    type="number"
+                    min="0"
+                    max="2000"
+                    step="100"
+                  />
+                </label>
+              </div>
+            </div>
+
+          <div class="toggle-list">
+            <label class="check">
+              <input id="setAutoTrigger" type="checkbox" />
+              <span class="check-text">
+                <strong>自动触发</strong>
+                <small>输入停顿后自动请求补全</small>
+              </span>
+            </label>
+            <label class="check">
+              <input id="setMultiLine" type="checkbox" />
+              <span class="check-text">
+                <strong>多行补全</strong>
+                <small>允许模型返回跨行建议</small>
+              </span>
+            </label>
+          </div>
+
+          <label class="field">
+            <span class="field-label">停止词</span>
+            <textarea
+              id="setStopSequences"
+              rows="3"
+              placeholder="每行一个，最多 16 个；支持 \n、\t 转义"
+              spellcheck="false"
+            ></textarea>
+          </label>
+          <p class="hint">
+            例如输入 <code>\n\n</code> 可让模型在空行处停止；留空则不发送 stop。
+          </p>
+
+          <label class="field">
+            <span class="field-label">语言过滤</span>
+            <input
+              id="setLanguages"
+              type="text"
+              placeholder="typescript,python（留空表示全部）"
+              spellcheck="false"
+              autocomplete="off"
+            />
+          </label>
+
+          <button id="saveSettingsBtn" class="btn primary wide" type="button">
+            保存 FIM 设置
+          </button>
+          <div class="footer-actions">
+            <button id="clearCacheBtn" class="link-btn" type="button">
+              清除补全缓存
+            </button>
+          </div>
+          </div>
+        </section>
+
+        <section class="panel collapsible tips collapsed" aria-label="使用提示">
+          <div class="section-header">
+            <button
+              class="section-toggle"
+              type="button"
+              data-panel="tips"
+              aria-expanded="false"
+              aria-controls="tipsBody"
+            >
+              <span class="chevron" aria-hidden="true"></span>
+              <span class="section-heading">
+                <span class="section-title" role="heading" aria-level="2"
+                  >使用提示</span
+                >
+                <span class="section-sub">快捷键、手动触发与接口要求</span>
+              </span>
+            </button>
+          </div>
+          <div id="tipsBody" class="section-body">
+            <ul>
+              <li>补全由编辑器的 Inline Suggest 展示，按 <kbd>Tab</kbd> 接受。</li>
+              <li>手动触发命令：<code>DeepSeek FIM: 手动触发行内补全</code>。</li>
+              <li>模型应支持带 <code>prompt</code> 与 <code>suffix</code> 的 <code>/completions</code> 接口。</li>
+            </ul>
+          </div>
+        </section>
+      </main>
+
+      <footer class="app-footer">
+        <span>DeepSeek FIM</span>
+        <span class="muted">密钥仅存于本机</span>
+      </footer>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script nonce="{{nonce}}" src="{{scriptUri}}"></script>
+  </body>
+</html>
